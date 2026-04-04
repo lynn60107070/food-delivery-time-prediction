@@ -1,0 +1,2 @@
+Model,Family,CV_RMSE_Mean,CV_RMSE_STD,MAE,RMSE,R2,Train_Seconds,Best_Estimator,Best_Config
+FLAML AutoML,automl_flaml,3.8623459956582544,,3.0496987423932715,3.7993085243653253,0.835608685109551,120.88886499404907,rf,"{'n_estimators': 148, 'max_features': 0.3890578130207286, 'max_leaves': 845}"

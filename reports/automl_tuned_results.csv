@@ -1,0 +1,4 @@
+Model,Family,CV_RMSE_Mean,CV_RMSE_STD,MAE,RMSE,R2,Best_Params
+Random Forest Tuned,manual_tuned,4.010011850358197,,3.125052661834105,3.934295042866277,0.8237197748906769,"{'model__n_estimators': 200, 'model__min_samples_split': 2, 'model__min_samples_leaf': 2, 'model__max_depth': 20}"
+Extra Trees Tuned,manual_tuned,4.030596183169792,,3.134682147105482,3.9580808864934234,0.8215818321581847,"{'model__n_estimators': 200, 'model__min_samples_split': 2, 'model__min_samples_leaf': 2, 'model__max_depth': 20}"
+XGBoost Tuned,manual_tuned,4.019058307011922,,3.1655828952789307,3.9657666865679935,0.8208882808685303,"{'model__subsample': 1.0, 'model__n_estimators': 100, 'model__max_depth': 6, 'model__learning_rate': 0.05, 'model__colsample_bytree': 1.0}"

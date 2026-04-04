@@ -1,0 +1,7 @@
+# Load joblib sklearn pipelines trained in notebooks/04_modeling.ipynb (FLAML AutoML inside Pipeline)
+pandas>=2.0
+numpy>=1.24
+scikit-learn>=1.3
+joblib>=1.3
+flaml[automl]>=2.0
+xgboost>=2.0

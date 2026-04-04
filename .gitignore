@@ -1,0 +1,44 @@
+# --- Intentionally NOT ignored (tracked): *.csv, reports/, *.ipynb, data/, src/, etc. ---
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Testing / typing
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Environment & secrets
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Jupyter (checkpoints only — .ipynb files stay tracked)
+.ipynb_checkpoints/
+
+# Large ML binaries & AutoGluon artifact trees (JSON under models/ stays tracked)
+*.pkl
+models/autogluon_delivery_time/
+
+# Training logs
+models/*.log

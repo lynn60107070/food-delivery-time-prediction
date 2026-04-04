@@ -1,0 +1,57 @@
+{
+    "best_model_name": "FLAML AutoML",
+    "best_model_family": "automl_flaml",
+    "best_model_type": "sklearn",
+    "target": "delivery_time_min",
+    "n_train_rows": 45082,
+    "n_test_rows": 11270,
+    "numeric_features": [
+        "driver_age",
+        "driver_rating",
+        "vehicle_condition",
+        "num_deliveries",
+        "distance_km",
+        "order_hour",
+        "is_weekend",
+        "is_peak_hour"
+    ],
+    "categorical_features": [
+        "weather",
+        "traffic_density",
+        "order_type",
+        "vehicle_type",
+        "is_festival",
+        "city",
+        "order_day"
+    ],
+    "selected_features_used": [
+        "driver_age",
+        "driver_rating",
+        "weather",
+        "traffic_density",
+        "vehicle_condition",
+        "order_type",
+        "vehicle_type",
+        "num_deliveries",
+        "is_festival",
+        "city",
+        "distance_km",
+        "order_hour",
+        "order_day",
+        "is_weekend",
+        "is_peak_hour"
+    ],
+    "top_3_models_for_ensemble": [
+        "Random Forest Tuned",
+        "Extra Trees Tuned",
+        "XGBoost Tuned"
+    ],
+    "val_mae": 3.0496987423932715,
+    "val_rmse": 3.7993085243653253,
+    "val_r2": 0.835608685109551,
+    "automl_available": {
+        "xgboost": true,
+        "flaml": true,
+        "autogluon": true
+    }
+}
