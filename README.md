@@ -16,10 +16,10 @@ Regression project (**DSAI4103-style business analytics / ML**) to predict **del
 | `src/` | Shared Python code (see **Source code** below) |
 | `models/` | **`model_metadata.json`**, **`model_full.pkl`**, **`model_validation.pkl`**, optional **AutoGluon** folders (large; see `.gitignore`) |
 | `reports/` | Figures under `figures/`, **`test_predictions.csv`**, **`validation_predictions.csv`** |
-| `deployment/` | **`score.py`**, **`simulate_scoring.py`**, **`package_models.py`**, **`requirements-inference.txt`** |
+| `deployment/` | **`score.py`** (batch CSV scoring), **`simulate_scoring.py`** (append demo runs), **`append_test_prediction_date_range.py`** (custom date ranges), **`package_models.py`**, **`requirements-inference.txt`** |
 | `deployment/dist/` | Optional output from `package_models.py` (bundled artifacts) |
 | `bias_analysis/` | **`bias_report.ipynb`** — disparity metrics, Kruskal tests, plots on validation predictions |
-| `dashboard/` | Place Power BI (`.pbix`) or other dashboard assets here |
+| `dashboard/` | Power BI assets (e.g. `.pbix`); the published report is linked under **Reporting & Power BI** below |
 | `shap/` | Optional SHAP figures from explainability work |
 
 ---
@@ -74,7 +74,7 @@ Run Jupyter with the **working directory = project root** (or `sys.path` to root
 | **`data_preprocessing.py`** | Rename/clean features, **`preprocess_pipeline`** (training), **`preprocess_for_scoring`** (no row-dropping outliers), **`load_clean_data`** |
 | **`model_config.py`** | **`TARGET`**, **`DROP_COLS`** — aligned with `04_modeling.ipynb` |
 | **`flaml_wrapper.py`** | **`FLAMLRegressorWrapper`** + **`register_notebook_pickles()`** so `joblib` models saved from Jupyter load outside the notebook |
-| **`scoring.py`** | **`load_model`**, **`build_feature_matrix`**, **`predict_delivery_time`** for scripts and reuse |
+| **`scoring.py`** | **`load_model`**, **`build_feature_matrix`**, **`predict_delivery_time`**, **`predict_delivery_time_preprocessed`**, **`add_predicted_sla_status`** (SLA label from predicted minutes) — shared by deployment scripts |
 
 ---
 
@@ -92,7 +92,11 @@ Large files (`*.pkl`, AutoGluon trees) are **gitignored** by default; commit `mo
 
 ## Batch scoring (deployment)
 
-From the **repo root**, score a CSV whose columns match **raw** training/test schema (same as Kaggle-style input):
+**Scoring** here means **inference**: load the saved sklearn pipeline (`*.pkl`) and produce **`predicted_delivery_time_min`** (and optional **`predicted_SLA_status`**: On-Time if predicted minutes ≤ 30, else Delayed). Training happens in **`04_modeling.ipynb`**; deployment scripts only load artifacts and transform raw rows the same way as training.
+
+### One-shot batch score (full file)
+
+From the **repo root**, score a CSV whose columns match the **raw** training/test schema:
 
 ```bash
 python deployment/score.py -i data/raw/test.csv -o reports/test_predictions.csv
@@ -108,15 +112,40 @@ python deployment/package_models.py --out deployment/dist/model_bundle --include
 
 ### Simulated “live” scoring (demo / Power BI refresh)
 
-For portfolio demos, **`deployment/simulate_scoring.py`** samples rows from raw test data, runs the same **`predict_delivery_time`** pipeline as production scoring, and **appends** to **`reports/test_prediction.csv`** (note the filename: `test_prediction.csv`, not `test_predictions.csv`). Each run adds `simulation_batch_id` and `scored_at_utc` so you can filter batches in Power BI.
+For demos, **`deployment/simulate_scoring.py`** samples rows from raw test data, runs the same pipeline as **`score.py`**, and **appends** to **`reports/test_prediction.csv`** (singular — not `test_predictions.csv`). Each run adds **`simulation_batch_id`** and **`scored_at_utc`** (UTC ISO timestamps) so you can filter batches in Power BI.
 
-This is **not** a live API; it is **batch simulation**: run the script → refresh the dataset in Power BI → visuals update. Each row includes **`distance_km`**, **`traffic_density`**, **`weather`**, and **`order_hour`** (from the same preprocessing as training) for slicing in the dashboard.
+This is **not** a live API; it is **batch simulation**: run the script → refresh the dataset in Power BI → visuals update. Rows include context columns such as **`distance_km`**, **`traffic_density`**, **`weather`**, **`order_hour`**, and **`num_deliveries`** where available.
 
 ```bash
 python deployment/simulate_scoring.py --batch-size 30
 ```
 
-Options: `--source`, `--output`, `--seed` (fixed sample for a repeatable demo), same model/metadata overrides as `score.py`.
+Useful options:
+
+| Flag | Purpose |
+|------|--------|
+| `--no-scenario-tweaks` | Score from real preprocessed rows (more natural On-Time vs Delayed mix). |
+| (default tweaks on) | Stress-style inputs (longer distance, heavier traffic, peak hours) for dashboard demos. |
+| `--demo-delay-bump` | Adds random 0 / 10 / 15 minutes to predictions after scoring (demo only). |
+| `--seed` | Reproducible sampling and tweaks. |
+| `--source`, `--output` | Input CSV and append target; override model paths like `score.py`. |
+
+### Date-range append (custom `scored_at_utc` span)
+
+**`deployment/append_test_prediction_date_range.py`** appends rows with timestamps spread across a **chosen inclusive date range** (default Jan 1–Apr 8, 2026). It guarantees **at least one row per calendar day** in that range; extra rows are random across those days. Use this when the dashboard needs a believable time axis.
+
+```bash
+python deployment/append_test_prediction_date_range.py --start-date 2026-01-01 --end-date 2026-04-08 --total-rows 2000 --no-scenario-tweaks --seed 42
+```
+
+| Flag | Purpose |
+|------|--------|
+| `--start-date`, `--end-date` | Inclusive `YYYY-MM-DD` bounds for **`scored_at_utc`**. |
+| `--total-rows` | Rows per run; must be ≥ number of days in the range. |
+| `--runs` | Run multiple disjoint batches (one model load); multiplies rows and varies samples. |
+| `--no-scenario-tweaks` / `--mild-scenario-tweaks` | Natural or lightly varied inputs vs default stress tweaks. |
+
+Requires enough rows in **`--source`** (default `data/raw/test.csv`): **`runs × total-rows`** for multi-run mode.
 
 ---
 
@@ -128,16 +157,33 @@ Options: `--source`, `--output`, `--seed` (fixed sample for a repeatable demo), 
 
 ## Reporting & Power BI
 
-Typical **CSV** inputs:
+### Published dashboard
+
+**[Open the Power BI report (cloud)](https://app.powerbi.com/links/b8FRH8WhHd?ctid=b30f4b44-46c6-4070-9997-f87b38d4771c&pbi_source=linkShare)** — interactive dashboard for this project (sign-in may be required for your organization).
+
+The report has **four pages**:
+
+| Page | Purpose |
+|------|--------|
+| **Overview** | High-level **performance** — how the solution is doing at a glance. |
+| **Analysis** | **Factors that drive delay** — explore which inputs and conditions line up with longer delivery times / SLA risk. |
+| **Model performance (historical)** | Quality on **historical** labeled data (actual vs predicted, errors, slices). |
+| **Live model prediction** | **Deployable, operational-style** view: simulated scoring runs (**`test_prediction.csv`**) show predictions updating as new batches are scored — a realistic stand-in for a **live / real-time** monitoring workflow (refresh the dataset after each run; a production API would call the same **`deployment/score.py`** pipeline). |
+
+Store local **`.pbix`** or supporting files under **`dashboard/`** in this repo; the link above is the **published** version for sharing and demos.
+
+### Data connections
+
+Power BI does **not** execute `*.pkl` models inside the service; it reads **tabular outputs** you produce in Python. Typical **CSV** sources:
 
 | File | Use |
 |------|-----|
 | **`data/processed/cleaned_delivery_data.csv`** | EDA — actual `delivery_time_min`, full cleaned features |
 | **`reports/validation_predictions.csv`** | Model quality — actual vs predicted, errors, slices (`city`, etc.) |
-| **`reports/test_predictions.csv`** | One-shot export from `04_modeling.ipynb` — full test set predictions |
-| **`reports/test_prediction.csv`** | **Append-only** simulated scoring runs (`simulate_scoring.py`) for refresh-style demos |
+| **`reports/test_predictions.csv`** | One-shot batch scoring from **`deployment/score.py`** or export from **`04_modeling.ipynb`** — full test set predictions |
+| **`reports/test_prediction.csv`** | **Append-only** simulated scoring (`simulate_scoring.py`, **`append_test_prediction_date_range.py`**) — includes **`scored_at_utc`**, **`simulation_batch_id`**, **`predicted_SLA_status`** for time-series and SLA views |
 
-Power BI does **not** run `*.pkl` inside the report; connect to these CSVs (or to a database you populate with the same outputs). Use **Import** mode and **Refresh** after each simulation run (or DirectQuery only if you host data in a database).
+Use **Import** mode and **Refresh** the dataset after regenerating CSVs (or use DirectQuery if you load the same schema from a database).
 
 ---
 
