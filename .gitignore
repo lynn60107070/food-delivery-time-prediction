@@ -1,11 +1,11 @@
-# --- Intentionally NOT ignored (tracked): *.csv, reports/, *.ipynb, data/, src/, etc. ---
+# --- Tracked on purpose: *.csv, reports/, *.ipynb, data/, src/, notebooks/, etc. ---
 
 # Virtual environments
 venv/
 .venv/
 env/
 
-# Python
+# Python bytecode / packaging
 __pycache__/
 *.py[cod]
 *$py.class
@@ -13,32 +13,67 @@ __pycache__/
 .Python
 *.egg-info/
 .eggs/
+*.egg
+MANIFEST
+
+# Build / distribution (Python packages)
 dist/
 build/
-*.egg
+pip-wheel-metadata/
 
-# Testing / typing
+# Testing / coverage / typing / linters
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.hypothesis/
 .coverage
+.coverage.*
 htmlcov/
+coverage.xml
+*.cover
+.tox/
+.nox/
 
-# Environment & secrets
+# Environment & secrets (never commit)
 .env
 .env.*
+*.pem
+secrets/
+credentials.json
+*.key
 
-# OS / editor
+# OS
 .DS_Store
 Thumbs.db
+Desktop.ini
 *.swp
 *~
 
-# Jupyter (checkpoints only — .ipynb files stay tracked)
+# Editors / local IDE (remove a line if your team commits shared configs)
+.idea/
+.cursor/
+*.code-workspace
+
+# Jupyter (notebook files stay tracked)
 .ipynb_checkpoints/
 
-# Large ML binaries & AutoGluon artifact trees (JSON under models/ stays tracked)
+# Logs (project logs; keep tracked CSVs / figures if you want them versioned)
+*.log
+logs/
+
+# Large ML artifacts
 *.pkl
 models/autogluon_delivery_time/
+models/**/autogluon*/
 
-# Training logs
-models/*.log
+# Regenerated deployment bundles (rebuild: python deployment/package_models.py)
+deployment/dist/
+
+# Local databases / caches
+*.sqlite
+*.sqlite3
+*.db
+
+# Misc tooling caches
+wandb/
+mlruns/
