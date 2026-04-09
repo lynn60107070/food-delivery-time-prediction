@@ -21,7 +21,12 @@ ROOT = _SCRIPT.parent if (_SCRIPT.parent / "src").is_dir() else _SCRIPT.parents[
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.scoring import load_metadata, load_model, predict_delivery_time  # noqa: E402
+from src.scoring import (  # noqa: E402
+    add_predicted_sla_status,
+    load_metadata,
+    load_model,
+    predict_delivery_time,
+)
 
 
 def _default_model_path() -> str:
@@ -88,6 +93,7 @@ def main() -> int:
     out = pd.DataFrame({"predicted_delivery_time_min": preds})
     if args.id_column and args.id_column in df.columns:
         out.insert(0, args.id_column, df[args.id_column].values)
+    out = add_predicted_sla_status(out)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(output_path, index=False)

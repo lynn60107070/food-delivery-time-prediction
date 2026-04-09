@@ -16,7 +16,7 @@ Regression project (**DSAI4103-style business analytics / ML**) to predict **del
 | `src/` | Shared Python code (see **Source code** below) |
 | `models/` | **`model_metadata.json`**, **`model_full.pkl`**, **`model_validation.pkl`**, optional **AutoGluon** folders (large; see `.gitignore`) |
 | `reports/` | Figures under `figures/`, **`test_predictions.csv`**, **`validation_predictions.csv`** |
-| `deployment/` | **`score.py`** (CLI), **`package_models.py`**, **`requirements-inference.txt`** |
+| `deployment/` | **`score.py`**, **`simulate_scoring.py`**, **`package_models.py`**, **`requirements-inference.txt`** |
 | `deployment/dist/` | Optional output from `package_models.py` (bundled artifacts) |
 | `bias_analysis/` | **`bias_report.ipynb`** — disparity metrics, Kruskal tests, plots on validation predictions |
 | `dashboard/` | Place Power BI (`.pbix`) or other dashboard assets here |
@@ -106,6 +106,18 @@ Defaults: **`models/model_full.pkl`**, **`models/model_metadata.json`**. In a co
 python deployment/package_models.py --out deployment/dist/model_bundle --include-src
 ```
 
+### Simulated “live” scoring (demo / Power BI refresh)
+
+For portfolio demos, **`deployment/simulate_scoring.py`** samples rows from raw test data, runs the same **`predict_delivery_time`** pipeline as production scoring, and **appends** to **`reports/test_prediction.csv`** (note the filename: `test_prediction.csv`, not `test_predictions.csv`). Each run adds `simulation_batch_id` and `scored_at_utc` so you can filter batches in Power BI.
+
+This is **not** a live API; it is **batch simulation**: run the script → refresh the dataset in Power BI → visuals update. Each row includes **`distance_km`**, **`traffic_density`**, **`weather`**, and **`order_hour`** (from the same preprocessing as training) for slicing in the dashboard.
+
+```bash
+python deployment/simulate_scoring.py --batch-size 30
+```
+
+Options: `--source`, `--output`, `--seed` (fixed sample for a repeatable demo), same model/metadata overrides as `score.py`.
+
 ---
 
 ## Bias analysis
@@ -122,9 +134,10 @@ Typical **CSV** inputs:
 |------|-----|
 | **`data/processed/cleaned_delivery_data.csv`** | EDA — actual `delivery_time_min`, full cleaned features |
 | **`reports/validation_predictions.csv`** | Model quality — actual vs predicted, errors, slices (`city`, etc.) |
-| **`reports/test_predictions.csv`** | Deployment — predictions on holdout test (usually **no** true delivery time) |
+| **`reports/test_predictions.csv`** | One-shot export from `04_modeling.ipynb` — full test set predictions |
+| **`reports/test_prediction.csv`** | **Append-only** simulated scoring runs (`simulate_scoring.py`) for refresh-style demos |
 
-Power BI does **not** run `*.pkl` inside the report; connect to these CSVs (or to a database you populate with the same outputs).
+Power BI does **not** run `*.pkl` inside the report; connect to these CSVs (or to a database you populate with the same outputs). Use **Import** mode and **Refresh** after each simulation run (or DirectQuery only if you host data in a database).
 
 ---
 

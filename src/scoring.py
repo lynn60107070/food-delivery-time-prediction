@@ -28,9 +28,18 @@ def load_model(path: Path | str) -> Any:
     return joblib.load(p)
 
 
-def build_feature_matrix(df: pd.DataFrame, metadata: dict[str, Any] | None = None) -> pd.DataFrame:
-    """Raw rows -> feature matrix expected by the saved sklearn Pipeline."""
-    out = preprocess_for_scoring(df)
+def build_feature_matrix(
+    df: pd.DataFrame,
+    metadata: dict[str, Any] | None = None,
+    *,
+    preprocessed: bool = False,
+) -> pd.DataFrame:
+    """Raw rows -> feature matrix expected by the saved sklearn Pipeline.
+
+    If ``preprocessed=True``, ``df`` is already run through ``preprocess_for_scoring`` (e.g. after
+    simulation tweaks); skip preprocessing and only drop columns / select features.
+    """
+    out = df if preprocessed else preprocess_for_scoring(df)
     drop_cols = [c for c in DROP_COLS if c in out.columns]
     out = out.drop(columns=drop_cols)
     if TARGET in out.columns:
@@ -66,3 +75,27 @@ def predict_delivery_time(
     X = build_feature_matrix(df, metadata=metadata)
     X = align_to_pipeline(X, pipeline)
     return np.asarray(pipeline.predict(X), dtype=float)
+
+
+def predict_delivery_time_preprocessed(
+    preprocessed_df: pd.DataFrame,
+    pipeline: Any,
+    metadata: dict[str, Any] | None = None,
+) -> np.ndarray:
+    """Predict from an already preprocessed feature frame (same columns as after ``preprocess_for_scoring``)."""
+    X = build_feature_matrix(preprocessed_df, metadata=metadata, preprocessed=True)
+    X = align_to_pipeline(X, pipeline)
+    return np.asarray(pipeline.predict(X), dtype=float)
+
+
+def add_predicted_sla_status(
+    df: pd.DataFrame,
+    pred_col: str = "predicted_delivery_time_min",
+    sla_minutes: float = 30.0,
+) -> pd.DataFrame:
+    """Label each row On-Time vs Delayed from predicted minutes vs SLA threshold."""
+    out = df.copy()
+    out["predicted_SLA_status"] = out[pred_col].apply(
+        lambda x: "On-Time" if x <= sla_minutes else "Delayed"
+    )
+    return out
